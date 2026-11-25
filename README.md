@@ -27,11 +27,18 @@ A from-scratch implementation of the [Raft consensus algorithm](https://raft.git
 
 ## Build and test
 
-Requires Java 21 and Gradle.
+Requires Java 21. The Gradle wrapper downloads the required Gradle version automatically.
 
 ```bash
 ./gradlew build
 ./gradlew test
+```
+
+On Windows PowerShell:
+
+```powershell
+.\gradlew.bat build
+.\gradlew.bat test
 ```
 
 ## References
