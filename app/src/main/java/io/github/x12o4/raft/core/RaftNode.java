@@ -37,6 +37,9 @@ public class RaftNode {
             votedFor = null;
             currentRole = Role.FOLLOWER;
             return true;
+        } else if (term == currentTerm) {
+            currentRole = Role.FOLLOWER;
+            return true;
         }
         return false;
     }

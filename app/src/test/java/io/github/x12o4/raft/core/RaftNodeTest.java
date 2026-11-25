@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class RaftNodeTest {
     @Test
@@ -13,6 +14,7 @@ class RaftNodeTest {
 
         assertTrue(node.becomeCandidate());
         assertTrue(node.becomeCandidate());
+        assertEquals(2, node.getCurrentTerm());
         assertTrue(node.becomeLeader());
     }
 
@@ -43,7 +45,7 @@ class RaftNodeTest {
     @Test
     void returnCorrectVotedFor() {
         RaftNode node = new RaftNode("abc");
-        assertEquals(null, node.getVotedFor());
+        assertNull(node.getVotedFor());
         node.becomeCandidate();
         assertEquals("abc", node.getVotedFor());
     }
@@ -59,9 +61,46 @@ class RaftNodeTest {
     }
 
     @Test 
-    void leaderCannotBecomeCandidate() {
+    void followerCannotBecomeLeader() {
         RaftNode node = new RaftNode("abc");
+        node.becomeFollower(1);
+        assertFalse(node.becomeLeader());
+    }
+
+    @Test 
+    void becomeFollower() {
+        RaftNode node = new RaftNode("abc");
+        node.becomeCandidate();
+        assertTrue(node.becomeFollower(2));
+        assertEquals(Role.FOLLOWER, node.getCurrentRole());
+        assertEquals(2, node.getCurrentTerm());
+        assertNull(node.getVotedFor());
+    }
+
+    @Test 
+    void sameTerm() {
+        RaftNode node = new RaftNode("abc");
+        node.becomeCandidate();
+        node.becomeFollower(node.getCurrentTerm());
+        assertEquals(node.getNodeId(), node.getVotedFor());
+        assertEquals("abc", node.getVotedFor());
+        assertEquals(Role.FOLLOWER, node.getCurrentRole());
+    }
+
+    @Test 
+    void lowerTerm() {
+        RaftNode node = new RaftNode("abc");
+        node.becomeCandidate();
+        assertFalse(node.becomeFollower(node.getCurrentTerm() - 1));
+        assertEquals(Role.CANDIDATE, node.getCurrentRole());
+    }
+
+    @Test 
+    void leaderChangesOnHigherTerm() {
+        RaftNode node = new RaftNode("abc");
+        node.becomeCandidate();
         node.becomeLeader();
-        assertFalse(node.becomeCandidate());
+        assertTrue(node.becomeFollower(node.getCurrentTerm() + 1));
+        assertEquals(Role.FOLLOWER, node.getCurrentRole());
     }
 }
