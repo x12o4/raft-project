@@ -12,7 +12,7 @@ A from-scratch implementation of the [Raft consensus algorithm](https://raft.git
 
 ## Roadmap
 
-- [ ] Node state and role transitions (follower, candidate, leader)
+- [x] Node state and role transitions (follower, candidate, leader)
 - [ ] Leader election (`RequestVote`, randomised election timeouts, heartbeats)
 - [ ] Log replication (`AppendEntries`, commit index, applying entries)
 - [ ] Persistence (`currentTerm`, `votedFor`, `log`) and crash recovery
