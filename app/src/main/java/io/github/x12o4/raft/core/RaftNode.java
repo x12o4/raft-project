@@ -1,5 +1,8 @@
 package io.github.x12o4.raft.core;
 
+import io.github.x12o4.raft.rpc.RequestVoteRequest;
+import io.github.x12o4.raft.rpc.RequestVoteResponse;
+
 public class RaftNode {
     private final String nodeId;
     private int currentTerm;
@@ -60,5 +63,22 @@ public class RaftNode {
         return currentRole;
     }
 
-    
+    public RequestVoteResponse handleRequestVote(RequestVoteRequest request) {
+        if (request.term() > currentTerm) {
+            becomeFollower(request.term());
+        } else if (request.term() < currentTerm) {
+        return new RequestVoteResponse(currentTerm, false);
+        }
+
+        boolean canVote = votedFor == null || votedFor.equals(request.candidateId());
+        if (canVote && isCandidateLogUpToDate(request)) {
+            votedFor = request.candidateId();
+            return new RequestVoteResponse(currentTerm, true);
+        }
+        return new RequestVoteResponse(currentTerm, false);
+    }
+
+    private boolean isCandidateLogUpToDate(RequestVoteRequest request) {
+        return true;
+    }
 }
