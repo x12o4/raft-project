@@ -193,6 +193,30 @@ class RaftNodeTest {
 
     @Test 
     void refusedVoteDoesntCount() {
-        RaftNode node1 = new RaftNode
+        RaftNode node1 = new RaftNode("abc", Set.of("def", "ghi"));
+        RaftNode node2 = new RaftNode("def", Set.of("abc", "ghi"));
+
+        assertTrue(node1.becomeCandidate());
+        assertTrue(node2.handleRequestVote(new RequestVoteRequest(node1.getCurrentTerm(), "ghi", 0, 0)).voteGranted());
+
+        RequestVoteResponse refusedResponse = node2.handleRequestVote(
+                new RequestVoteRequest(node1.getCurrentTerm(), node1.getNodeId(), 0, 0));
+        assertFalse(refusedResponse.voteGranted());
+        node1.handleRequestVoteResponse(refusedResponse, "def");
+        assertEquals(Role.CANDIDATE, node1.getCurrentRole());
+    }
+
+    @Test
+    void higherTermResponseMakesNodeStepDown() {
+        RaftNode node1 = new RaftNode("abc", Set.of("def", "ghi"));
+        RaftNode node2 = new RaftNode("def", Set.of("abc", "ghi"));
+
+        assertTrue(node1.becomeCandidate());
+        assertTrue(node2.handleRequestVote(new RequestVoteRequest(node1.getCurrentTerm(), "ghi", 0, 0)).voteGranted());
+
+        RequestVoteResponse higherTermResponse = new RequestVoteResponse(node1.getCurrentTerm() + 1, false);
+        node1.handleRequestVoteResponse(higherTermResponse, "def");
+        assertEquals(Role.FOLLOWER, node1.getCurrentRole());
+        assertNull(node1.getVotedFor());
     }
 }
