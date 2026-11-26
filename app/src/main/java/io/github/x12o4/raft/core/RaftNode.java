@@ -26,14 +26,15 @@ public class RaftNode {
         this(nodeId, Set.of());
     }
 
-    private int majoritySize() {
-        return (peerIds.size() / 2) + 1;
+    public int majoritySize() {
+        return (peerIds.size() + 1) / 2 + 1; // +1 to include self in the count
     }
 
     public boolean becomeCandidate() {
         if (currentRole == Role.FOLLOWER || currentRole == Role.CANDIDATE) {
             currentTerm++;
             votesReceived.clear();
+            votesReceived.add(nodeId);
             votedFor = nodeId;
             currentRole = Role.CANDIDATE;
             return true;
@@ -93,7 +94,24 @@ public class RaftNode {
         return new RequestVoteResponse(currentTerm, false);
     }
 
-    public void handleRequestVoteResponse(RequestVoteResponse response) {
+    public void handleRequestVoteResponse(RequestVoteResponse response, String voterId) {
+        if(response.term() > currentTerm) {
+            becomeFollower(response.term());
+            return;
+        }
+        if(currentRole != Role.CANDIDATE) {
+            return;
+        }
+        if(response.term() < currentTerm) {
+            return; 
+        }
+        if(!response.voteGranted()) {
+            return;
+        }
+        votesReceived.add(voterId);
+        if(votesReceived.size() >= majoritySize()) {
+            becomeLeader();
+        }
         
     }
     private boolean isCandidateLogUpToDate(RequestVoteRequest request) {

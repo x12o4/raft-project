@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import io.github.x12o4.raft.rpc.RequestVoteRequest;
 import io.github.x12o4.raft.rpc.RequestVoteResponse;
+import java.util.Set;
+
 
 class RaftNodeTest {
     @Test
@@ -147,5 +149,50 @@ class RaftNodeTest {
 
         assertTrue(node.handleRequestVote(request).voteGranted());
         assertTrue(node.handleRequestVote(request).voteGranted());
+    }
+
+    @Test
+    void majoritySizeIsCalculatedCorrectly() {
+        assertEquals(1, new RaftNode("abc").majoritySize());
+        assertEquals(2, new RaftNode("abc", Set.of("def")).majoritySize());
+        assertEquals(2, new RaftNode("abc", Set.of("def", "ghi")).majoritySize());
+        assertEquals(3, new RaftNode("abc", Set.of("def", "ghi", "jkl")).majoritySize());
+        assertEquals(3, new RaftNode("abc", Set.of("def", "ghi", "jkl", "mno")).majoritySize());
+    }
+    @Test
+    void twoNodeClusterElection() {
+        RaftNode node1 = new RaftNode("abc", Set.of("def"));
+        RaftNode node2 = new RaftNode("def", Set.of("abc"));
+
+        assertTrue(node1.becomeCandidate());
+        RequestVoteResponse response = node2.handleRequestVote(new RequestVoteRequest(node1.getCurrentTerm(), node1.getNodeId(), 0, 0));
+        assertEquals(Role.CANDIDATE, node1.getCurrentRole());
+        node1.handleRequestVoteResponse(response, "def");
+        assertEquals(Role.LEADER, node1.getCurrentRole());
+
+    }
+
+    @Test 
+    void fourNodeClusterElection() {
+        RaftNode node1 = new RaftNode("abc", Set.of("def", "ghi", "jkl"));
+        RaftNode node2 = new RaftNode("def", Set.of("abc", "ghi", "jkl"));
+        RaftNode node3 = new RaftNode("ghi", Set.of("abc", "def", "jkl"));
+        RaftNode node4 = new RaftNode("jkl", Set.of("abc", "def", "ghi"));
+
+        assertTrue(node1.becomeCandidate());
+        RequestVoteResponse response2 = node2.handleRequestVote(new RequestVoteRequest(node1.getCurrentTerm(), node1.getNodeId(), 0, 0));
+        node1.handleRequestVoteResponse(response2, "def");
+        assertEquals(Role.CANDIDATE, node1.getCurrentRole());
+        RequestVoteResponse response3 = node3.handleRequestVote(new RequestVoteRequest(node1.getCurrentTerm(), node1.getNodeId(), 0, 0));
+        node1.handleRequestVoteResponse(response3, "ghi");
+        assertEquals(Role.LEADER, node1.getCurrentRole());
+        RequestVoteResponse response4 = node4.handleRequestVote(new RequestVoteRequest(node1.getCurrentTerm(), node1.getNodeId(), 0, 0));
+        node1.handleRequestVoteResponse(response4, "jkl");
+        assertEquals(Role.LEADER, node1.getCurrentRole());
+    }
+
+    @Test 
+    void refusedVoteDoesntCount() {
+        RaftNode node1 = new RaftNode
     }
 }
